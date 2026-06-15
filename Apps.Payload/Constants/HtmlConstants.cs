@@ -14,4 +14,5 @@ public static class HtmlConstants
     public const string MetaUcid = "blackbird-ucid";
     public const string MetaSystemName = "blackbird-system-name";
     public const string MetaSystemRef = "blackbird-system-ref";
+    public const string MetaLocale = "blackbird-locale";
 }

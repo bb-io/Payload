@@ -63,18 +63,19 @@ public class ContentActionTests : TestBase
         var result = await Actions.DownloadContent(new DownloadContentRequest
         {
             ContentType = "posts",
-            ContentId = "1"
+            ContentId = "1",
+            Locale = "en"
         });
 
         Assert.IsNotNull(result);
-        Assert.AreEqual("text/html", result.ContentType);
+        Assert.AreEqual("text/html", result.Content.ContentType);
 
-        var html = FileManager.ReadOutputAsString(result);
+        var html = FileManager.ReadOutputAsString(result.Content);
         Assert.IsFalse(string.IsNullOrWhiteSpace(html));
         Assert.IsTrue(html.Contains("blackbird-ucid"), "HTML should contain UCID metadata.");
         Assert.IsTrue(html.Contains("posts:1"), "UCID should encode the content type and ID.");
 
-        Console.WriteLine($"Generated file: {result.Name}");
+        Console.WriteLine($"Generated file: {result.Content.Name}");
         Console.WriteLine(html);
     }
 
@@ -85,10 +86,11 @@ public class ContentActionTests : TestBase
         {
             ContentType = "posts",
             ContentId = "1",
+            Locale = "en",
             FieldsToExclude = ["title"]
         });
 
-        var html = FileManager.ReadOutputAsString(result);
+        var html = FileManager.ReadOutputAsString(result.Content);
         Assert.IsFalse(html.Contains("data-json-path=\"title\""),
             "Excluded field 'title' should not appear in HTML.");
     }
@@ -107,13 +109,14 @@ public class ContentActionTests : TestBase
             }
             """);
 
-        var html = JsonToHtmlConverter.Convert(contentJson, "posts", "42");
+        var html = JsonToHtmlConverter.Convert(contentJson, "posts", "42", sourceLocale: "es");
 
         Assert.IsTrue(html.Contains("posts:42"), "UCID must reference the content.");
-        Assert.IsTrue(html.Contains("Hello World"), "English title should appear in HTML.");
+        Assert.IsFalse(html.Contains("Hello World"), "English title should not appear in single-locale HTML.");
         Assert.IsTrue(html.Contains("Hola Mundo"), "Spanish title should appear in HTML.");
+        Assert.IsTrue(html.Contains("blackbird-locale"), "HTML should encode source locale.");
 
-        var parsed = HtmlToJsonConverter.Parse(html, "es");
+        var parsed = HtmlToJsonConverter.Parse(html);
 
         Assert.AreEqual("posts:42", parsed.Ucid);
         Assert.IsTrue(parsed.MainFields.ContainsKey("title"), "Parsed result should contain 'title'.");
@@ -133,7 +136,7 @@ public class ContentActionTests : TestBase
             }
             """);
 
-        var html = JsonToHtmlConverter.Convert(contentJson, "posts", "1");
+        var html = JsonToHtmlConverter.Convert(contentJson, "posts", "1", sourceLocale: "en");
 
         Assert.IsFalse(html.Contains("data-json-path=\"meta\""),
             "'meta' has non-locale keys and should not be treated as a localizable field.");
@@ -169,16 +172,17 @@ public class ContentActionTests : TestBase
         var downloadResult = await Actions.DownloadContent(new DownloadContentRequest
         {
             ContentType = "posts",
-            ContentId = "1"
+            ContentId = "1",
+            Locale = "en"
         });
 
         // Move the output file to the input folder for upload
         var outputPath = Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory,
-            "..", "..", "..", "TestFiles", "Output", downloadResult.Name);
+            "..", "..", "..", "TestFiles", "Output", downloadResult.Content.Name);
         var inputPath = Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory,
-            "..", "..", "..", "TestFiles", "Input", downloadResult.Name);
+            "..", "..", "..", "TestFiles", "Input", downloadResult.Content.Name);
 
         var absoluteOutput = Path.GetFullPath(outputPath);
         var absoluteInput = Path.GetFullPath(inputPath);
@@ -188,8 +192,8 @@ public class ContentActionTests : TestBase
 
         var uploadResult = await Actions.UploadContent(new UploadContentRequest
         {
-            File = downloadResult,
-            TargetLocale = "es"
+            Content = downloadResult.Content,
+            Locale = "es"
         });
 
         Assert.IsNotNull(uploadResult);

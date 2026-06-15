@@ -18,14 +18,15 @@ public record ReferenceUpdate(
 
 public static class HtmlToJsonConverter
 {
-    public static ParsedContent Parse(string html, string targetLocale)
+    public static ParsedContent Parse(string html)
     {
         var doc = new HtmlDocument();
         doc.LoadHtml(html);
 
         var ucid = ExtractMeta(doc, HtmlConstants.MetaUcid);
-        var mainFields = ExtractFields(doc.DocumentNode, targetLocale, insideReference: false);
-        var references = ExtractReferences(doc.DocumentNode, targetLocale);
+        var locale = ExtractMeta(doc, HtmlConstants.MetaLocale);
+        var mainFields = ExtractFields(doc.DocumentNode, locale, insideReference: false);
+        var references = ExtractReferences(doc.DocumentNode, locale);
 
         return new ParsedContent(ucid, mainFields, references);
     }

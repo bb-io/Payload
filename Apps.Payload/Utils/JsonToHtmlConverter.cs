@@ -11,13 +11,14 @@ public static class JsonToHtmlConverter
         JObject content,
         string contentType,
         string contentId,
+        string sourceLocale,
         IEnumerable<string>? fieldsToExclude = null,
         bool includeReferenceContent = false)
     {
         var sb = new StringBuilder();
         var excludeSet = (fieldsToExclude ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        AppendDocumentHead(sb, contentType, contentId);
+        AppendDocumentHead(sb, contentType, contentId, sourceLocale);
         sb.AppendLine("<body>");
 
         foreach (var property in content.Properties())
@@ -26,9 +27,9 @@ public static class JsonToHtmlConverter
                 continue;
 
             if (IsLocalizableField(valueObj))
-                AppendLocalizableField(sb, property.Name, valueObj, indent: "  ");
+                AppendLocalizableField(sb, property.Name, valueObj, sourceLocale, indent: "  ");
             else if (includeReferenceContent && IsReference(valueObj))
-                AppendReferenceBlock(sb, property.Name, valueObj);
+                AppendReferenceBlock(sb, property.Name, valueObj, sourceLocale);
         }
 
         sb.AppendLine("</body>");
@@ -36,23 +37,24 @@ public static class JsonToHtmlConverter
         return sb.ToString();
     }
 
-    private static void AppendDocumentHead(StringBuilder sb, string contentType, string contentId)
+    private static void AppendDocumentHead(StringBuilder sb, string contentType, string contentId, string sourceLocale)
     {
         sb.AppendLine("<!DOCTYPE html>");
-        sb.AppendLine("<html lang=\"en\">");
+        sb.AppendLine($"<html lang=\"{sourceLocale}\">");
         sb.AppendLine("<head>");
         sb.AppendLine("  <meta charset=\"UTF-8\">");
         AppendMeta(sb, HtmlConstants.MetaUcid, $"{contentType}:{contentId}");
+        AppendMeta(sb, HtmlConstants.MetaLocale, sourceLocale);
         AppendMeta(sb, HtmlConstants.MetaSystemName, "Payload CMS");
         AppendMeta(sb, HtmlConstants.MetaSystemRef, "https://payloadcms.com");
         sb.AppendLine("</head>");
     }
 
-    private static void AppendLocalizableField(StringBuilder sb, string fieldName, JObject localeValues, string indent)
+    private static void AppendLocalizableField(StringBuilder sb, string fieldName, JObject localeValues, string sourceLocale, string indent)
     {
+        if (!localeValues.ContainsKey(sourceLocale)) return;
         sb.AppendLine($"{indent}<div {HtmlConstants.JsonPath}=\"{HtmlEntity.Entitize(fieldName)}\">");
-        foreach (var locale in localeValues.Properties())
-            AppendLocaleValue(sb, locale.Name, locale.Value, indent + "  ");
+        AppendLocaleValue(sb, sourceLocale, localeValues[sourceLocale]!, indent + "  ");
         sb.AppendLine($"{indent}</div>");
     }
 
@@ -65,7 +67,7 @@ public static class JsonToHtmlConverter
         sb.AppendLine($"{indent}<div {HtmlConstants.Locale}=\"{locale}\" {HtmlConstants.FieldType}=\"{fieldType}\">{content}</div>");
     }
 
-    private static void AppendReferenceBlock(StringBuilder sb, string fieldName, JObject reference)
+    private static void AppendReferenceBlock(StringBuilder sb, string fieldName, JObject reference, string sourceLocale)
     {
         var refId = reference["id"]?.ToString() ?? string.Empty;
         sb.AppendLine($"  <article {HtmlConstants.ReferenceCollection}=\"{HtmlEntity.Entitize(fieldName)}\" {HtmlConstants.ReferenceId}=\"{HtmlEntity.Entitize(refId)}\">");
@@ -74,7 +76,7 @@ public static class JsonToHtmlConverter
         {
             if (prop.Name == "id" || prop.Value is not JObject sub) continue;
             if (IsLocalizableField(sub))
-                AppendLocalizableField(sb, prop.Name, sub, indent: "    ");
+                AppendLocalizableField(sb, prop.Name, sub, sourceLocale, indent: "    ");
         }
 
         sb.AppendLine("  </article>");

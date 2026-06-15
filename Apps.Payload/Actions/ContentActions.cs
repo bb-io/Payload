@@ -3,11 +3,13 @@ using Apps.Payload.Invocables;
 using Apps.Payload.Models.Requests;
 using Apps.Payload.Models.Responses;
 using Apps.Payload.Utils;
+using Blackbird.Applications.SDK.Blueprints;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Filters.Bilingual.Xliff1;
 using Blackbird.Filters.Bilingual.Xliff2;
 using Blackbird.Filters.Extensions;
@@ -45,9 +47,10 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         return await Client.ExecuteWithErrorHandling<ContentResponse>(req);
     }
 
+    [BlueprintActionDefinition(BlueprintAction.DownloadContent)]
     [Action("Download content",
         Description = "Downloads all localizable fields as an HTML file, ready for translation.")]
-    public async Task<FileReference> DownloadContent([ActionParameter] DownloadContentRequest request)
+    public async Task<DownloadContentOutput> DownloadContent([ActionParameter] DownloadContentRequest request)
     {
         var req = new RestRequest($"/api/{request.ContentType}/{request.ContentId}");
         req.AddQueryParameter("locale", "all");
@@ -59,12 +62,17 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             content,
             request.ContentType,
             request.ContentId,
+            request.Locale,
             request.FieldsToExclude,
             request.IncludeReferenceContent == true);
 
         var bytes = Encoding.UTF8.GetBytes(html);
         var fileName = $"{request.ContentType}_{request.ContentId}.html";
-        return await fileManagementClient.UploadAsync(new MemoryStream(bytes), "text/html", fileName);
+        return new()
+        {
+            Content = await fileManagementClient.UploadAsync(new MemoryStream(bytes), "text/html", fileName),
+            RootContentId = request.ContentId
+        };
     }
 
     [Action("Update content",
@@ -86,26 +94,27 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         return result["doc"]?.ToObject<ContentResponse>() ?? result.ToObject<ContentResponse>()!;
     }
 
+    [BlueprintActionDefinition(BlueprintAction.UploadContent)]
     [Action("Upload content",
         Description = "Updates a content item from a translated HTML or XLF file.")]
     public async Task<UploadContentResponse> UploadContent([ActionParameter] UploadContentRequest request)
     {
-        var fileStream = await fileManagementClient.DownloadAsync(request.File);
-        var html = await ConvertFileToHtml(fileStream, request.File.Name);
+        var fileStream = await fileManagementClient.DownloadAsync(request.Content);
+        var html = await ConvertFileToHtml(fileStream, request.Content.Name);
 
-        var parsed = HtmlToJsonConverter.Parse(html, request.TargetLocale);
+        var parsed = HtmlToJsonConverter.Parse(html);
         var ucidParts = parsed.Ucid.Split(':', 2);
         var contentType = ucidParts[0];
         var contentId = ucidParts.Length > 1 ? ucidParts[1] : string.Empty;
 
-        await PatchContent(contentType, contentId, request.TargetLocale, parsed.MainFields);
+        await PatchContent(contentType, contentId, request.Locale, parsed.MainFields);
 
         var errors = new List<string>();
         foreach (var reference in parsed.References)
         {
             try
             {
-                await PatchContent(reference.Collection, reference.Id, request.TargetLocale, reference.Fields);
+                await PatchContent(reference.Collection, reference.Id, request.Locale, reference.Fields);
             }
             catch (Exception ex)
             {
@@ -113,18 +122,26 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
             }
         }
 
+        var downloadResponse = await DownloadContent(new DownloadContentRequest
+        {
+            ContentType = contentType,
+            ContentId = contentId, 
+            Locale = request.Locale,
+            IncludeReferenceContent = true
+        });
+        
         return new UploadContentResponse
         {
             ContentType = contentType,
             ContentId = contentId,
-            ErrorMessages = errors.Count > 0 ? errors : null
+            ErrorMessages = errors.Count > 0 ? errors : null,
+            Content = downloadResponse.Content
         };
     }
 
     private static async Task<string> ConvertFileToHtml(Stream fileStream, string fileName)
     {
-        var bytes = await ReadAllBytesAsync(fileStream);
-
+        var bytes = await fileStream.GetByteData();
         var isXlf = Xliff2Serializer.IsXliff2(new MemoryStream(bytes), out _)
                     || Xliff1Serializer.IsXliff1(new MemoryStream(bytes), out _);
 
@@ -137,14 +154,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
 
         return loadResult.Value.ToStream().ReadString();
     }
-
-    private static async Task<byte[]> ReadAllBytesAsync(Stream stream)
-    {
-        using var ms = new MemoryStream();
-        await stream.CopyToAsync(ms);
-        return ms.ToArray();
-    }
-
+    
     private async Task PatchContent(string contentType, string contentId, string targetLocale, Dictionary<string, object> fields)
     {
         var body = BuildPatchBody(fields);

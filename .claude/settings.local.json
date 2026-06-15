@@ -6,7 +6,8 @@
       "Bash(Remove-Item \"D:\\\\dev\\\\blackbird\\\\Payload\\\\Apps.Payload\\\\Actions\\\\Actions.cs\" -Force)",
       "Bash(Remove-Item \"D:\\\\dev\\\\blackbird\\\\Payload\\\\Apps.Payload\\\\Handlers\\\\DynamicHandler.cs\" -Force)",
       "Bash(Remove-Item \"D:\\\\dev\\\\blackbird\\\\Payload\\\\Apps.Payload\\\\Handlers\\\\Static\\\\StaticHandler.cs\" -Force)",
-      "PowerShell(New-Item *)"
+      "PowerShell(New-Item *)",
+      "Bash(dotnet build *)"
     ]
   }
 }

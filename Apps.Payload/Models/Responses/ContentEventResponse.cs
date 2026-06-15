@@ -1,9 +1,10 @@
+using Blackbird.Applications.SDK.Blueprints.Interfaces.CMS;
 using Blackbird.Applications.Sdk.Common;
 using Newtonsoft.Json;
 
 namespace Apps.Payload.Models.Responses;
 
-public class ContentEventResponse
+public class ContentEventResponse : IDownloadContentInput
 {
     [Display("Event")]
     [JsonProperty("event")]
