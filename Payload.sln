@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Apps.Payload", "Apps.Payloa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Payload", "Tests.Payload\Tests.Payload.csproj", "{B360EE3D-9F9A-4751-B39B-DB9766F201D1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PayloadCms", "PayloadCms\PayloadCms.csproj", "{D2C1E2EC-A9CD-423F-8055-817163F7AA47}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,10 +21,6 @@ Global
 		{B360EE3D-9F9A-4751-B39B-DB9766F201D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B360EE3D-9F9A-4751-B39B-DB9766F201D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B360EE3D-9F9A-4751-B39B-DB9766F201D1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D2C1E2EC-A9CD-423F-8055-817163F7AA47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D2C1E2EC-A9CD-423F-8055-817163F7AA47}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D2C1E2EC-A9CD-423F-8055-817163F7AA47}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D2C1E2EC-A9CD-423F-8055-817163F7AA47}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
