@@ -27,7 +27,7 @@ public static class JsonToHtmlConverter
                 continue;
 
             if (IsLocalizableField(valueObj))
-                AppendLocalizableField(sb, property.Name, valueObj, sourceLocale, indent: "  ");
+                AppendLocalizableField(sb, property.Name, valueObj, sourceLocale, contentType, contentId, indent: "  ");
             else if (includeReferenceContent && IsReference(valueObj))
                 AppendReferenceBlock(sb, property.Name, valueObj, sourceLocale);
         }
@@ -50,21 +50,22 @@ public static class JsonToHtmlConverter
         sb.AppendLine("</head>");
     }
 
-    private static void AppendLocalizableField(StringBuilder sb, string fieldName, JObject localeValues, string sourceLocale, string indent)
+    private static void AppendLocalizableField(StringBuilder sb, string fieldName, JObject localeValues, string sourceLocale, string contentType, string contentId, string indent)
     {
         if (!localeValues.ContainsKey(sourceLocale)) return;
+        var key = $"{contentType}-{contentId}-{fieldName}";
         sb.AppendLine($"{indent}<div {HtmlConstants.JsonPath}=\"{HtmlEntity.Entitize(fieldName)}\">");
-        AppendLocaleValue(sb, sourceLocale, localeValues[sourceLocale]!, indent + "  ");
+        AppendLocaleValue(sb, sourceLocale, localeValues[sourceLocale]!, key, indent + "  ");
         sb.AppendLine($"{indent}</div>");
     }
 
-    private static void AppendLocaleValue(StringBuilder sb, string locale, JToken value, string indent)
+    private static void AppendLocaleValue(StringBuilder sb, string locale, JToken value, string blackbirdKey, string indent)
     {
         var fieldType = value is JObject ? HtmlConstants.FieldTypeLexical : HtmlConstants.FieldTypeText;
         var content = value is JObject jObj
             ? LexicalHtmlConverter.ToHtml(jObj)
             : HtmlEntity.Entitize(value.ToString());
-        sb.AppendLine($"{indent}<div {HtmlConstants.Locale}=\"{locale}\" {HtmlConstants.FieldType}=\"{fieldType}\">{content}</div>");
+        sb.AppendLine($"{indent}<div {HtmlConstants.Locale}=\"{locale}\" {HtmlConstants.FieldType}=\"{fieldType}\" {HtmlConstants.BlackbirdKey}=\"{HtmlEntity.Entitize(blackbirdKey)}\">{content}</div>");
     }
 
     private static void AppendReferenceBlock(StringBuilder sb, string fieldName, JObject reference, string sourceLocale)
@@ -76,7 +77,7 @@ public static class JsonToHtmlConverter
         {
             if (prop.Name == "id" || prop.Value is not JObject sub) continue;
             if (IsLocalizableField(sub))
-                AppendLocalizableField(sb, prop.Name, sub, sourceLocale, indent: "    ");
+                AppendLocalizableField(sb, prop.Name, sub, sourceLocale, fieldName, refId, indent: "    ");
         }
 
         sb.AppendLine("  </article>");

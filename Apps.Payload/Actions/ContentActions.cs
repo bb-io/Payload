@@ -158,9 +158,11 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     private async Task PatchContent(string contentType, string contentId, string targetLocale, Dictionary<string, object> fields)
     {
         var body = BuildPatchBody(fields);
-        var req = new RestRequest($"/api/{contentType}/{contentId}", Method.Patch);
-        req.AddQueryParameter("locale", targetLocale);
-        req.AddJsonBody(body);
+        var json = JsonConvert.SerializeObject(body, Formatting.Indented);
+        var req = new RestRequest($"/api/{contentType}/{contentId}", Method.Patch)
+            .AddQueryParameter("locale", targetLocale)
+            .AddJsonBody(json);
+        
         await Client.ExecuteWithErrorHandling(req);
     }
 
@@ -176,6 +178,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
                 _ => JToken.FromObject(value)
             };
         }
+        
         return body;
     }
 }

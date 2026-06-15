@@ -7,6 +7,7 @@ public static class HtmlConstants
     public const string FieldType = "data-field-type";
     public const string ReferenceId = "data-reference-id";
     public const string ReferenceCollection = "data-reference-collection";
+    public const string BlackbirdKey = "data-blackbird-key";
 
     public const string FieldTypeText = "text";
     public const string FieldTypeLexical = "lexical";

@@ -67,7 +67,7 @@ public class PayloadRestClient : BlackBirdRestClient
             var message = body?["errors"]?.FirstOrDefault()?["message"]?.ToString()
                           ?? body?["message"]?.ToString()
                           ?? response.Content;
-            return new PluginApplicationException($"Payload CMS error: {message}");
+            return new PluginApplicationException(message);
         }
         catch
         {

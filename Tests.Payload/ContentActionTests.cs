@@ -168,32 +168,14 @@ public class ContentActionTests : TestBase
     [TestMethod]
     public async Task UploadContent_FromDownloadedHtmlFile_ShouldSucceed()
     {
-        // First download to generate the HTML file in the Output folder
-        var downloadResult = await Actions.DownloadContent(new DownloadContentRequest
-        {
-            ContentType = "posts",
-            ContentId = "1",
-            Locale = "en"
-        });
-
-        // Move the output file to the input folder for upload
-        var outputPath = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "..", "..", "..", "TestFiles", "Output", downloadResult.Content.Name);
-        var inputPath = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory,
-            "..", "..", "..", "TestFiles", "Input", downloadResult.Content.Name);
-
-        var absoluteOutput = Path.GetFullPath(outputPath);
-        var absoluteInput = Path.GetFullPath(inputPath);
-
-        if (File.Exists(absoluteOutput))
-            File.Copy(absoluteOutput, absoluteInput, overwrite: true);
-
         var uploadResult = await Actions.UploadContent(new UploadContentRequest
         {
-            Content = downloadResult.Content,
-            Locale = "es"
+            Content = new()
+            {
+                Name = "posts_1.html",
+                ContentType = "text/html"
+            },
+            Locale = "de"
         });
 
         Assert.IsNotNull(uploadResult);
