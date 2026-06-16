@@ -1,0 +1,8 @@
+{
+  "ConnectionDefinition": {
+    "base_url": "http://localhost:3000",
+    "api_key": "users API-Key <your-api-key>",
+    "auth_collection_slug": "users"
+  },
+  "TestFolder": "TestFiles"
+}
