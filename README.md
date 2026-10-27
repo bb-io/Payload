@@ -38,6 +38,8 @@ Payload CMS API keys are tied to individual documents in a collection that has t
    - **Base URL**: The root URL of your Payload CMS instance, without a trailing slash (e.g. `http://localhost:3000` or `https://my-payload.vercel.app`)
    - **API key**: The raw API key generated in the Payload admin panel (without any prefix)
    - **Auth collection slug (e.g. users)**: The slug of the collection the API key belongs to. This is typically `users` unless you have a custom authentication collection (e.g. `integrations`)
+   - **API path** _(only in the "API key (custom API path)" connection type)_: 
+   Use this if you changed `routes.api` in your Payload config, e.g. `/api/v1`. Otherwise use the regular "API key" connection.
 5. Click _Connect_
 6. Confirm that the connection has appeared and the status is _Connected_
 
