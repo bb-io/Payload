@@ -22,7 +22,7 @@ public class ConnectionValidator(InvocationContext invocationContext)
         {
             var slug = authProviders.Get(CredNames.AuthCollectionSlug).Value;
             var client = new PayloadRestClient(authProviders);
-            var request = new RestRequest($"/api/{slug}/me");
+            var request = new RestRequest($"{slug}/me");
             var response = await client.ExecuteAsync(request, cancellationToken);
 
             var statusCode = (int)response.StatusCode;

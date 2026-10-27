@@ -31,14 +31,14 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         if (!string.IsNullOrEmpty(request.Locale))
             queryParams["locale"] = request.Locale;
 
-        var items = await Client.PaginateAsync<ContentResponse>($"/api/{request.ContentType}", queryParams);
+        var items = await Client.PaginateAsync<ContentResponse>($"{request.ContentType}", queryParams);
         return new SearchContentResponse { Items = items };
     }
 
     [Action("Get content", Description = "Returns a single content item by type and ID.")]
     public async Task<ContentResponse> GetContent([ActionParameter] GetContentRequest request)
     {
-        var req = new RestRequest($"/api/{request.ContentType}/{request.ContentId}");
+        var req = new RestRequest($"{request.ContentType}/{request.ContentId}");
         req.AddQueryParameter("depth", "1");
 
         if (!string.IsNullOrEmpty(request.Locale))
@@ -52,7 +52,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         Description = "Downloads all localizable fields as an HTML file, ready for translation.")]
     public async Task<DownloadContentOutput> DownloadContent([ActionParameter] DownloadContentRequest request)
     {
-        var req = new RestRequest($"/api/{request.ContentType}/{request.ContentId}");
+        var req = new RestRequest($"{request.ContentType}/{request.ContentId}");
         req.AddQueryParameter("locale", "all");
         req.AddQueryParameter("depth", "1");
 
@@ -85,7 +85,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
         for (var i = 0; i < keys.Count; i++)
             body[keys[i]] = i < values.Count ? values[i] : null;
 
-        var req = new RestRequest($"/api/{request.ContentType}/{request.ContentId}", Method.Patch);
+        var req = new RestRequest($"{request.ContentType}/{request.ContentId}", Method.Patch);
         if (!string.IsNullOrEmpty(request.Locale))
             req.AddQueryParameter("locale", request.Locale);
         req.AddJsonBody(body);
@@ -159,7 +159,7 @@ public class ContentActions(InvocationContext invocationContext, IFileManagement
     {
         var body = BuildPatchBody(fields);
         var json = JsonConvert.SerializeObject(body, Formatting.Indented);
-        var req = new RestRequest($"/api/{contentType}/{contentId}", Method.Patch)
+        var req = new RestRequest($"{contentType}/{contentId}", Method.Patch)
             .AddQueryParameter("locale", targetLocale)
             .AddJsonBody(json);
         
