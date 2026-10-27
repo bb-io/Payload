@@ -12,12 +12,10 @@ namespace Apps.Payload.Api;
 
 public class PayloadRestClient : BlackBirdRestClient
 {
-    private const int PageSize = 100;
-
     public PayloadRestClient(IEnumerable<AuthenticationCredentialsProvider> creds)
         : base(new RestClientOptions
         {
-            BaseUrl = creds.Get(CredNames.BaseUrl).Value.TrimEnd('/').ToUri(),
+            BaseUrl = BuildBaseUrl(creds),
             Timeout = TimeSpan.FromSeconds(60)
         })
     {
@@ -26,10 +24,10 @@ public class PayloadRestClient : BlackBirdRestClient
 
     public async Task<IReadOnlyList<T>> PaginateAsync<T>(
         string resource,
-        IDictionary<string, string?>? queryParameters = null,
-        CancellationToken cancellationToken = default)
+        IDictionary<string, string?>? queryParameters = null)
     {
-        var page = 1;
+        int page = 1;
+        int pageSize = 100;
         var results = new List<T>();
         PagedResponse<T>? response;
 
@@ -43,7 +41,7 @@ public class PayloadRestClient : BlackBirdRestClient
                         request.AddQueryParameter(key, value);
 
             request.AddQueryParameter("page", page.ToString());
-            request.AddQueryParameter("limit", PageSize.ToString());
+            request.AddQueryParameter("limit", pageSize.ToString());
 
             response = await ExecuteWithErrorHandling<PagedResponse<T>>(request);
             if (response?.Docs != null)
@@ -74,6 +72,17 @@ public class PayloadRestClient : BlackBirdRestClient
             return new PluginApplicationException(
                 $"Payload CMS error ({(int)response.StatusCode}): {response.Content}");
         }
+    }
+    
+    private static Uri BuildBaseUrl(IEnumerable<AuthenticationCredentialsProvider> creds)
+    {
+        string baseUrl = creds.Get(CredNames.BaseUrl).Value.TrimEnd('/');
+        string apiPath = creds.FirstOrDefault(c => c.KeyName == CredNames.ApiPath)?.Value;
+
+        if (string.IsNullOrWhiteSpace(apiPath))
+            apiPath = "/api";
+
+        return $"{baseUrl}/{apiPath.Trim('/')}".ToUri();
     }
 
     private class PagedResponse<T>
