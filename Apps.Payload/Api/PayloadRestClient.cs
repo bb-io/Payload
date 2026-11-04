@@ -62,9 +62,9 @@ public class PayloadRestClient : BlackBirdRestClient
         try
         {
             var body = JsonConvert.DeserializeObject<JObject>(response.Content);
-            var message = body?["errors"]?.FirstOrDefault()?["message"]?.ToString()
-                          ?? body?["message"]?.ToString()
-                          ?? response.Content;
+            var message = body?["errors"] is JArray { Count: > 0 } errors
+                ? string.Join("; ", errors.Select(DescribeError))
+                : body?["message"]?.ToString() ?? response.Content;
             return new PluginApplicationException(message);
         }
         catch
@@ -74,6 +74,22 @@ public class PayloadRestClient : BlackBirdRestClient
         }
     }
     
+    private static string DescribeError(JToken error)
+    {
+        var message = error["message"]?.ToString() ?? error.ToString();
+        if (error["data"]?["errors"] is not JArray { Count: > 0 } fieldErrors)
+            return message;
+
+        return $"{message} ({string.Join(", ", fieldErrors.Select(DescribeFieldError))})";
+    }
+
+    private static string DescribeFieldError(JToken fieldError)
+    {
+        var locale = fieldError["locale"]?.ToString();
+        var localePrefix = string.IsNullOrEmpty(locale) ? string.Empty : $"[{locale}] ";
+        return $"{localePrefix}{fieldError["path"]}: {fieldError["message"]}";
+    }
+
     private static Uri BuildBaseUrl(IEnumerable<AuthenticationCredentialsProvider> creds)
     {
         string baseUrl = creds.Get(CredNames.BaseUrl).Value.TrimEnd('/');

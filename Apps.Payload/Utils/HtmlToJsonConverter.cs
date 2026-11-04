@@ -6,9 +6,12 @@ namespace Apps.Payload.Utils;
 
 public record ParsedContent(
     string Ucid,
+    string SourceLocale,
     Dictionary<string, object> MainFields,
     List<ReferenceUpdate> References
 );
+
+public record RichTextTranslation(string Html);
 
 public record ReferenceUpdate(
     string Collection,
@@ -28,7 +31,7 @@ public static class HtmlToJsonConverter
         var mainFields = ExtractFields(doc.DocumentNode, locale, insideReference: false);
         var references = ExtractReferences(doc.DocumentNode, locale);
 
-        return new ParsedContent(ucid, mainFields, references);
+        return new ParsedContent(ucid, locale, mainFields, references);
     }
 
     private static string ExtractMeta(HtmlDocument doc, string metaName) =>
@@ -64,7 +67,7 @@ public static class HtmlToJsonConverter
 
             var fieldType = localeNode.GetAttributeValue(HtmlConstants.FieldType, HtmlConstants.FieldTypeText);
             object value = fieldType == HtmlConstants.FieldTypeLexical
-                ? LexicalHtmlConverter.FromHtml(localeNode.InnerHtml)
+                ? new RichTextTranslation(localeNode.InnerHtml)
                 : (HtmlEntity.DeEntitize(localeNode.InnerText) ?? string.Empty);
 
             fields[fieldName] = value;

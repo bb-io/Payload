@@ -23,13 +23,15 @@ public static class JsonToHtmlConverter
 
         foreach (var property in content.Properties())
         {
-            if (excludeSet.Contains(property.Name) || property.Value is not JObject valueObj)
+            if (excludeSet.Contains(property.Name))
                 continue;
 
-            if (IsLocalizableField(valueObj))
+            if (property.Value is JObject valueObj && IsLocalizableField(valueObj))
                 AppendLocalizableField(sb, property.Name, valueObj, sourceLocale, contentType, contentId, indent: "  ");
-            else if (includeReferenceContent && IsReference(valueObj))
-                AppendReferenceBlock(sb, property.Name, valueObj, sourceLocale);
+            else if (property.Value is JObject referenceObj && includeReferenceContent && IsReference(referenceObj))
+                AppendReferenceBlock(sb, property.Name, referenceObj, sourceLocale);
+            else
+                AppendNestedFields(sb, property.Value, property.Name, sourceLocale, contentType, contentId, excludeSet);
         }
 
         sb.AppendLine("</body>");
@@ -50,12 +52,41 @@ public static class JsonToHtmlConverter
         sb.AppendLine("</head>");
     }
 
+    private static void AppendNestedFields(StringBuilder sb, JToken container, string path, string sourceLocale, string contentType, string contentId, HashSet<string> excludeSet)
+    {
+        if (container is JArray rows)
+        {
+            for (var i = 0; i < rows.Count; i++)
+                if (rows[i] is JObject row && !IsPopulatedDocument(row))
+                    AppendNestedObjectFields(sb, row, $"{path}.{i}", sourceLocale, contentType, contentId, excludeSet);
+            return;
+        }
+
+        if (container is JObject group && !group.ContainsKey("id") && !LexicalHtmlConverter.IsLexical(group))
+            AppendNestedObjectFields(sb, group, path, sourceLocale, contentType, contentId, excludeSet);
+    }
+
+    private static void AppendNestedObjectFields(StringBuilder sb, JObject container, string path, string sourceLocale, string contentType, string contentId, HashSet<string> excludeSet)
+    {
+        foreach (var property in container.Properties())
+        {
+            var fieldPath = $"{path}.{property.Name}";
+            if (excludeSet.Contains(property.Name) || excludeSet.Contains(fieldPath))
+                continue;
+
+            if (property.Value is JObject valueObj && IsLocalizableField(valueObj))
+                AppendLocalizableField(sb, fieldPath, valueObj, sourceLocale, contentType, contentId, indent: "  ");
+            else
+                AppendNestedFields(sb, property.Value, fieldPath, sourceLocale, contentType, contentId, excludeSet);
+        }
+    }
+
     private static void AppendLocalizableField(StringBuilder sb, string fieldName, JObject localeValues, string sourceLocale, string contentType, string contentId, string indent)
     {
-        if (!localeValues.ContainsKey(sourceLocale)) return;
+        if (!localeValues.TryGetValue(sourceLocale, out var sourceValue) || !IsTranslatableValue(sourceValue)) return;
         var key = $"{contentType}-{contentId}-{fieldName}";
         sb.AppendLine($"{indent}<div {HtmlConstants.JsonPath}=\"{HtmlEntity.Entitize(fieldName)}\">");
-        AppendLocaleValue(sb, sourceLocale, localeValues[sourceLocale]!, key, indent + "  ");
+        AppendLocaleValue(sb, sourceLocale, sourceValue, key, indent + "  ");
         sb.AppendLine($"{indent}</div>");
     }
 
@@ -92,13 +123,18 @@ public static class JsonToHtmlConverter
         return props.Count > 0 && props.All(p => IsLocaleCode(p.Name));
     }
 
+    private static bool IsTranslatableValue(JToken value) =>
+        value is JValue || value is JObject obj && LexicalHtmlConverter.IsLexical(obj);
+
+    private static bool IsPopulatedDocument(JObject obj) =>
+        obj.ContainsKey("id") && (obj.ContainsKey("createdAt") || obj.ContainsKey("updatedAt"));
+
     private static bool IsReference(JObject obj) =>
         obj.ContainsKey("id") &&
         obj.Properties().Any(p => p.Name != "id" && p.Value is JObject sub && IsLocalizableField(sub));
 
     private static bool IsLocaleCode(string key)
     {
-        // BCP 47: 2-3 lowercase language letters, optionally followed by subtags: en, es, en-US, zh-TW, pt-BR
         if (string.IsNullOrEmpty(key)) return false;
         var parts = key.Split('-');
         if (parts[0].Length is < 2 or > 3 || !parts[0].All(char.IsLower))
