@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <Product>Payload CMS [Beta]</Product>
         <Description>Payload CMS is a modern, open-source headless content management system built on Next.js, designed for developers and marketers to create flexible and scalable applications.</Description>
-        <Version>1.0.1</Version>
+        <Version>1.1.0</Version>
         <AssemblyName>Apps.Payload</AssemblyName>
     </PropertyGroup>
 

@@ -55,12 +55,18 @@ All actions in this group work with any Payload CMS collection. You always speci
 
 - **Download content**: Fetches a content item and converts its localizable fields into a structured HTML file ready to hand off to a translation tool. Metadata in the HTML `<head>` encodes the content identity (UCID) so the file can be uploaded back without any additional inputs.
   - **Locale** _(optional)_: When provided, only that locale's field values are included in the HTML (e.g. `en` downloads the English version only). When omitted, all locales are fetched (`locale=all`) and every language version appears in the file.
-  - **Fields to exclude** _(optional)_: Field names to omit from the HTML output.
+  - Localized fields nested inside named tabs, groups, arrays and blocks are included too, identified by their dotted path (e.g. `article.content`, `layout.0.heading`).
+  - **Fields to exclude** _(optional)_: Field names or dotted paths to omit from the HTML output (e.g. `content` or `article.content`).
   - **Include reference content** _(optional)_: When enabled, the localizable fields of any referenced documents (depth 1) are included as separate `<article>` blocks inside the HTML. These will also be updated during **Upload content**.
 
 - **Update content**: Updates specific fields of a content item for a given locale via a PATCH request. Provide parallel lists of **Field keys** and **Field values** — the action zips them together and sends a single PATCH.
 
 - **Upload content**: Takes a translated **HTML or XLF file** and updates the corresponding Payload CMS content item. The action reads all required information (content type, ID, fields) directly from the file — no extra inputs needed beyond the **Target locale** to write into. If the file includes referenced document blocks, those are updated in a second pass; any individual reference update failure is collected in the **Error messages** output rather than stopping the whole action.
+  - Rich text (Lexical) fields are merged into the structure of the source locale: only the translated text is replaced, while images, uploads, blocks, tables, relationships and link settings are kept as they are.
+  - Fields from tabs and groups are written back into their nested place. For fields inside arrays and blocks, the current rows of the target locale are read first so that every row keeps its ID and untranslated values.
+  - **Save as draft** _(optional)_: Saves the translation as a draft (`draft=true`) instead of publishing it. Drafts skip required field validation.
+
+- **Publish content**: Publishes the latest draft of a content item by setting its `_status` to `published`. Optionally specify a **Locale**. Requires drafts to be enabled on the collection.
 
 ## Events
 

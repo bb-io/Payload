@@ -14,4 +14,7 @@ public class UploadContentRequest : IUploadContentInput
 
     [Display("Content ID", Description = "ID of the content to update. If not provided, a new content will be created.")]
     public string? ContentId { get; set; }
+
+    [Display("Save as draft", Description = "Save the translation as a draft instead of publishing it. Drafts skip required field validation; publish them later with 'Publish content'.")]
+    public bool? SaveAsDraft { get; set; }
 }

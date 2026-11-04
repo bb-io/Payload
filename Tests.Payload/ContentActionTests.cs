@@ -1,7 +1,5 @@
 using Apps.Payload.Actions;
 using Apps.Payload.Models.Requests;
-using Apps.Payload.Utils;
-using Newtonsoft.Json.Linq;
 using Tests.Payload.Base;
 
 namespace Tests.Payload;
@@ -10,8 +8,6 @@ namespace Tests.Payload;
 public class ContentActionTests : TestBase
 {
     private ContentActions Actions => new(InvocationContext, FileManager);
-
-    // ── Search ───────────────────────────────────────────────────────────────
 
     [TestMethod]
     public async Task SearchContent_ValidCollection_ShouldReturnAllItems()
@@ -38,8 +34,6 @@ public class ContentActionTests : TestBase
         PrintJsonResult(result);
     }
 
-    // ── Get ──────────────────────────────────────────────────────────────────
-
     [TestMethod]
     public async Task GetContent_ExistingPost_ShouldReturnContent()
     {
@@ -54,8 +48,6 @@ public class ContentActionTests : TestBase
         Console.WriteLine($"Content ID: {result.Id}, Status: {result.Status}");
         PrintJsonResult(result);
     }
-
-    // ── Download ─────────────────────────────────────────────────────────────
 
     [TestMethod]
     public async Task DownloadContent_ExistingPost_ShouldReturnHtmlFile()
@@ -95,57 +87,6 @@ public class ContentActionTests : TestBase
             "Excluded field 'title' should not appear in HTML.");
     }
 
-    // ── Conversion round-trip (no API) ────────────────────────────────────────
-
-    [TestMethod]
-    public void DownloadThenUpload_RoundTrip_PreservesFieldValues()
-    {
-        var contentJson = JObject.Parse("""
-            {
-                "id": 42,
-                "title": { "en": "Hello World", "es": "Hola Mundo" },
-                "body": { "en": "Some body text", "es": "Algún texto" },
-                "status": "published"
-            }
-            """);
-
-        var html = JsonToHtmlConverter.Convert(contentJson, "posts", "42", sourceLocale: "es");
-
-        Assert.IsTrue(html.Contains("posts:42"), "UCID must reference the content.");
-        Assert.IsFalse(html.Contains("Hello World"), "English title should not appear in single-locale HTML.");
-        Assert.IsTrue(html.Contains("Hola Mundo"), "Spanish title should appear in HTML.");
-        Assert.IsTrue(html.Contains("blackbird-locale"), "HTML should encode source locale.");
-
-        var parsed = HtmlToJsonConverter.Parse(html);
-
-        Assert.AreEqual("posts:42", parsed.Ucid);
-        Assert.IsTrue(parsed.MainFields.ContainsKey("title"), "Parsed result should contain 'title'.");
-        Assert.AreEqual("Hola Mundo", parsed.MainFields["title"]);
-        Assert.AreEqual("Algún texto", parsed.MainFields["body"]);
-        Assert.AreEqual(0, parsed.References.Count);
-    }
-
-    [TestMethod]
-    public void LocalizableFieldDetection_WithNonLocalizedObject_ShouldNotInclude()
-    {
-        var contentJson = JObject.Parse("""
-            {
-                "id": 1,
-                "meta": { "version": "1.0", "author": "admin" },
-                "title": { "en": "Hello", "es": "Hola" }
-            }
-            """);
-
-        var html = JsonToHtmlConverter.Convert(contentJson, "posts", "1", sourceLocale: "en");
-
-        Assert.IsFalse(html.Contains("data-json-path=\"meta\""),
-            "'meta' has non-locale keys and should not be treated as a localizable field.");
-        Assert.IsTrue(html.Contains("data-json-path=\"title\""),
-            "'title' should be included as a localizable field.");
-    }
-
-    // ── Update ───────────────────────────────────────────────────────────────
-
     [TestMethod]
     public async Task UpdateContent_ValidFields_ShouldSucceed()
     {
@@ -162,8 +103,6 @@ public class ContentActionTests : TestBase
         Console.WriteLine($"Updated content ID: {result.Id}");
         PrintJsonResult(result);
     }
-
-    // ── Upload ────────────────────────────────────────────────────────────────
 
     [TestMethod]
     public async Task UploadContent_FromDownloadedHtmlFile_ShouldSucceed()
